@@ -31,6 +31,8 @@ func Github(ctx context.Context, client *dagger.Client, options any) ([]*job.Bui
 
 	// Build and test: branches main, develop, feature/*, bugfix/*, release/*, hotfix/*,  support/*
 	// Build, test and deploy: tags
+	// Build, test and export OCI archives: tags with --oci-export-to
+	// Import OCI archives and deploy: tags with --oci-import-from
 
 	ref := regexp.MustCompile(`^refs/(heads|tags|pull)/(.*)$`).FindStringSubmatch(o.Ref)
 	if ref == nil || (len(ref) != 3) {
@@ -69,6 +71,12 @@ func Github(ctx context.Context, client *dagger.Client, options any) ([]*job.Bui
 	o.Latest, err = helpers.IsLatestTag(o.Version, gtags)
 	if err != nil {
 		return nil, err
+	}
+
+	// building one arch of a release: test and export OCI archives,
+	// another run deploys and releases them with --oci-import-from
+	if o.OCIExportTo != "" {
+		return job.Test(ctx, client, &o.TestOptions)
 	}
 
 	body := ""

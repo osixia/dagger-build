@@ -22,6 +22,10 @@ type ExportOptions struct {
 
 	ExportCompress      bool
 	ExportCompressImage string
+
+	// OCIExportTo writes each built image as one OCI archive per platform
+	// in this directory, to publish them later with BuildOptions.OCIImportFrom.
+	OCIExportTo string
 }
 
 func DefaultExport(ctx context.Context, client *dagger.Client, options any) ([]*BuildResult, error) {
@@ -31,6 +35,18 @@ func DefaultExport(ctx context.Context, client *dagger.Client, options any) ([]*
 	builds, err := Build(ctx, client, &o.BuildOptions)
 	if err != nil {
 		return nil, err
+	}
+
+	if o.OCIExportTo != "" {
+		if o.OCIImportFrom != "" {
+			return nil, fmt.Errorf("OCI archives cannot be both imported and exported")
+		}
+		if err := ValidateOCIArchiveNames(o.Images, &o.BuildImageOptions); err != nil {
+			return nil, err
+		}
+		if err := ExportOCIArchives(ctx, builds, &o.BuildImageOptions, o.OCIExportTo); err != nil {
+			return nil, err
+		}
 	}
 
 	if o.ExportTo == "" || o.ExportFile == "" {

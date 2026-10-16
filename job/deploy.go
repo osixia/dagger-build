@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"dagger.io/dagger"
 )
@@ -24,10 +25,22 @@ func DefaultDeploy(ctx context.Context, client *dagger.Client, options any) ([]*
 
 	o := options.(*DeployOptions)
 
-	builds, err := Test(ctx, client, &o.TestOptions)
+	// imported images were tested natively by the runs that built them,
+	// testing them again would need emulation for other platforms
+	test := Test
+	if o.OCIImportFrom != "" {
+		test = func(ctx context.Context, client *dagger.Client, options any) ([]*BuildResult, error) {
+			return Export(ctx, client, &options.(*TestOptions).ExportOptions)
+		}
+	}
+
+	builds, err := test(ctx, client, &o.TestOptions)
 	if err != nil {
 		return nil, err
 	}
+
+	// all tags of an image share its digest: record it once, so it is signed once
+	digests := map[string]bool{}
 
 	for _, b := range builds {
 
@@ -68,7 +81,10 @@ func DefaultDeploy(ctx context.Context, client *dagger.Client, options any) ([]*
 			}
 			fmt.Printf("image %v pushed with digest %v\n", img, digest)
 
-			if o.DigestsFile != "" {
+			_, sha, _ := strings.Cut(digest, "@")
+			if o.DigestsFile != "" && !digests[sha] {
+				digests[sha] = true
+
 				f, err := os.OpenFile(o.DigestsFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					return nil, fmt.Errorf("opening cosign output file: %w", err)

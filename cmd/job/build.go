@@ -22,6 +22,8 @@ type BuildFlags struct {
 
 	distributions []string
 	arches        []string
+
+	ociImportFrom string
 }
 
 var buildCmdFlags = &BuildFlags{}
@@ -46,7 +48,9 @@ func AddBuildFlags(fs *pflag.FlagSet, bf *BuildFlags) {
 	fs.StringVar(&bf.tagsSuffix, "tags-suffix", "", "tags suffix\n")
 
 	fs.StringSliceVarP(&bf.distributions, "distributions", "d", distributions, fmt.Sprintf("distributions to build, choices: %v", strings.Join(distributions, ", ")))
-	fs.StringSliceVarP(&bf.arches, "arches", "a", arches, fmt.Sprintf("arches to build, choices: %v", strings.Join(arches, ", ")))
+	fs.StringSliceVarP(&bf.arches, "arches", "a", arches, fmt.Sprintf("arches to build, choices: %v\n", strings.Join(arches, ", ")))
+
+	fs.StringVar(&bf.ociImportFrom, "oci-import-from", "", "import images from the OCI archives in this directory instead of building them,\nimported images are not tested again before deploy (see --oci-export-to)\n")
 }
 
 func arches() []string {
@@ -114,5 +118,7 @@ func (bf *BuildFlags) ToJobOptions() any {
 		Dockerfile: bf.dockerfile,
 
 		Images: filterImages(bf.distributions),
+
+		OCIImportFrom: bf.ociImportFrom,
 	}
 }

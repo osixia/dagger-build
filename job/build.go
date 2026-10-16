@@ -19,6 +19,10 @@ type BuildOptions struct {
 
 	Dockerfile string
 	Images     []*config.Image
+
+	// OCIImportFrom imports images from OCI archives written with
+	// ExportOptions.OCIExportTo instead of building them.
+	OCIImportFrom string
 }
 
 type BuildImageOptions struct {
@@ -57,6 +61,10 @@ func DefaultBuild(ctx context.Context, client *dagger.Client, options any) ([]*B
 
 	if _, err := o.Validate(); err != nil {
 		return nil, err
+	}
+
+	if o.OCIImportFrom != "" {
+		return importImages(ctx, client, o)
 	}
 
 	wd, err := os.Getwd()
@@ -99,6 +107,30 @@ func DefaultBuild(ctx context.Context, client *dagger.Client, options any) ([]*B
 		}
 
 		b, err := BuildImage(ctx, workspace, dockerfileName, &o.BuildImageOptions, image)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, b)
+	}
+
+	return builds, nil
+}
+
+func importImages(ctx context.Context, client *dagger.Client, o *BuildOptions) ([]*BuildResult, error) {
+
+	if err := ValidateOCIArchiveNames(o.Images, &o.BuildImageOptions); err != nil {
+		return nil, err
+	}
+
+	var builds []*BuildResult
+	for _, image := range o.Images {
+
+		if _, err := image.Validate(); err != nil {
+			return nil, err
+		}
+
+		b, err := ImportImage(ctx, client, &o.BuildImageOptions, image, o.OCIImportFrom)
 		if err != nil {
 			return nil, err
 		}

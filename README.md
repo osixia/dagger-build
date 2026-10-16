@@ -72,6 +72,32 @@ The test job builds and optionally exports files; it does not publish images.
 Deploy, publish, and GitHub tag runs can push images and modify GitHub releases
 and release assets. Run them only when publication is intended.
 
+## Native multi-arch builds
+
+Building other architectures under QEMU is slow and can crash compilers. Each
+architecture can instead be built and tested on its own native runner, then
+deployed together as a single multi-arch image per tag:
+
+```bash
+# on an amd64 runner, then on an arm64 runner with --arches arm64
+go run . provider github ../Dockerfile --arches amd64 --github-ref "$GITHUB_REF" --github-token "$GITHUB_TOKEN" --oci-export-to ../oci
+
+# on any runner, with the archives of all runners in ../oci
+go run . provider github ../Dockerfile --github-ref "$GITHUB_REF" --github-token "$GITHUB_TOKEN" --oci-import-from ../oci --username "$USER" --password "$PASSWORD"
+```
+
+`--oci-export-to` writes one OCI archive per image and architecture, named
+`<image-name>_<first-tag-prefix-or-default><tags-suffix>_<arch>.tar`. On tags,
+the GitHub provider only builds, tests, and exports them. `--oci-import-from`
+imports these archives instead of building, checks their platform, and does
+not test them again before deploying: they were tested by the runs that built
+them. File exports such as `--export` read the imported images. Pass archives
+between CI jobs as artifacts; nothing is pushed to the registry before the
+final deploy, so it only gets the multi-arch tags.
+
+Deploy records each image digest once in `--digests-file`, even when several
+tags share it, so each image is signed once.
+
 ## Local development and initial extraction
 
 The initial `container-baseimage/build/go.mod` uses a local replacement pointing

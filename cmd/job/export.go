@@ -17,6 +17,8 @@ type ExportFlags struct {
 
 	exportCompress      bool
 	exportCompressImage string
+
+	ociExportTo string
 }
 
 var exportCmdFlags = &ExportFlags{}
@@ -39,6 +41,8 @@ func AddExportFlags(fs *pflag.FlagSet, ef *ExportFlags) {
 	fs.StringVar(&ef.exportCompressImage, "export-compress-image", "debian:trixie-slim", "container image used to compress exported file")
 	fs.BoolVar(&ef.exportCompress, "export-compress", false, "compress exported file\n")
 
+	fs.StringVar(&ef.ociExportTo, "oci-export-to", "", "export built images to this directory, one OCI archive per image and arch,\nto build each arch on its own runner and deploy them together with --oci-import-from\n")
+
 	AddBuildFlags(fs, &ef.BuildFlags)
 }
 
@@ -54,5 +58,7 @@ func (ef *ExportFlags) ToJobOptions() any {
 
 		ExportCompress:      ef.exportCompress,
 		ExportCompressImage: ef.exportCompressImage,
+
+		OCIExportTo: ef.ociExportTo,
 	}
 }

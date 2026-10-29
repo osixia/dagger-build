@@ -4,6 +4,8 @@ Shared Go build tooling for Osixia container images, using the standalone
 [Dagger Go SDK](https://docs.dagger.io/reference/client-libraries/).
 Requires Go 1.26.1 or newer. Dagger SDK/engine version: **0.21.10**.
 
+![dagger-build workshop illustration](docs/assets/images/osixia-dagger-build.png)
+
 ## Packages
 
 | Package | Responsibility |

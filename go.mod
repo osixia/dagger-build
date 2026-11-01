@@ -3,7 +3,7 @@ module github.com/osixia/dagger-build
 go 1.26.1
 
 require (
-	dagger.io/dagger v0.21.10
+	dagger.io/dagger v0.21.11
 	github.com/google/go-github/v69 v69.2.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/spf13/cobra v1.10.2
